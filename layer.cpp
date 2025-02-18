@@ -1,27 +1,34 @@
 #include "layer.h"
 
-Layer::Layer(int start_dim, int end_dim, ActivationFunction activ)
-    : linear_function_(start_dim, end_dim), activation_function_(std::move(activ)) {
+namespace NeuralNetworkFromScratch {
+
+Layer::Layer(int start_dim, int end_dim, ActivationFunction activation_function)
+    : A_(Matrix::Random(end_dim, start_dim)),
+      b_(Vector::Random(end_dim)),
+      activation_function_(std::move(activation_function)) {
 }
 
 Vector Layer::Propagate(const Vector& x) {
-    propagation_input_ = x;
-    return activation_function_.Apply(linear_function_.Apply(x));
+    assert(A_.size() != 0 && b_.size() != 0);
+    cache_ = {x, A_ * x + b_};
+    return activation_function_.Apply(cache_.y);
 }
 
 Matrix Layer::BackPropagate(const Matrix& u, double learning_rate) {
-    const Matrix& jacobian =
-        activation_function_.Jacobian(linear_function_.Apply(propagation_input_));
-    Matrix u_prop = u * jacobian * linear_function_.GetA();
-    linear_function_.Shift(-learning_rate * (propagation_input_ * (u * jacobian)).transpose(),
-                           -learning_rate * (u * jacobian).transpose());
+    assert(A_.size() != 0 && b_.size() != 0);
+    Matrix jacobian = activation_function_.Jacobian(cache_.y);
+    Matrix u_prop = u * jacobian * A_;
+    A_ -= learning_rate * (cache_.x * (u * jacobian)).transpose();
+    b_ -= learning_rate * (u * jacobian).transpose();
     return u_prop;
 }
 
-int Layer::InputDim() const {
-    return linear_function_.InputDim();
+Index Layer::InputDim() const {
+    return A_.cols();
 }
 
-int Layer::OutputDim() const {
-    return linear_function_.OutputDim();
+Index Layer::OutputDim() const {
+    return A_.rows();
 }
+
+}  // namespace NeuralNetworkFromScratch
