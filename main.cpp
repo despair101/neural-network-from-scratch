@@ -1,10 +1,6 @@
 #include "network.h"
 
-#include <iomanip>
 #include <iostream>
-
-#include <iostream>
-#include <Eigen/Dense>
 
 int main() {
     using namespace NeuralNetworkFromScratch;
@@ -17,6 +13,5 @@ int main() {
     std::cout << "True Y:" << '\n';
     std::cout << Y << '\n';
     std::cout << "Loss:" << '\n';
-    std::cout << std::fixed << std::setprecision(5) << LossFunction().Score(Y, network.Predict(X))
-              << '\n';
+    std::cout << LossFunction().Score(Y, network.Predict(X)) << '\n';
 }
