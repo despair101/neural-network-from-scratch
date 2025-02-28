@@ -10,20 +10,21 @@ namespace NeuralNetworkFromScratch {
 
 class Network {
 public:
-    Network(const std::vector<Layer>& layers, LossFunction loss_function);
-    Network(const std::vector<int>& dimensions,
-            const std::vector<ActivationFunction>& activation_functions,
-            LossFunction loss_function);
-    void Train(const Matrix& X, const Matrix& Y, int epochs, double learning_rate);
-    Matrix Predict(const Matrix& X);
-    double Score(const Matrix& Y_true, const Matrix& Y_pred) const;
+    explicit Network(const std::vector<Layer>& layers);
+    explicit Network(const std::vector<Index>& dimensions,
+                     const std::vector<ActivationFunction>& activation_functions);
+    void Train(const Matrix& X, const Matrix& Y_true, int epochs, double learning_rate,
+               const LossFunction& loss_function);
+    void TrainEpoch(const Matrix& X, const Matrix& Y_true, double learning_rate,
+                    const LossFunction& loss_function);
+    Matrix Predict(const Matrix& X) const;
 
 private:
-    Vector Propagate(Vector x);
+    Matrix Propagate(Matrix x);
+    Matrix Propagate(Matrix x) const;
     void BackPropagate(Matrix y, double learning_rate);
 
     std::vector<Layer> layers_;
-    LossFunction loss_function_;
 };
 
 }  // namespace NeuralNetworkFromScratch

@@ -7,14 +7,14 @@ ActivationFunction::ActivationFunction(const std::function<double(double)>& func
     : function_(function), derivative_(derivative) {
 }
 
-Vector ActivationFunction::Apply(const Vector& x) const {
+Matrix ActivationFunction::Apply(const Matrix& X) const {
     assert(function_);
-    return x.unaryExpr(function_);
+    return X.unaryExpr(function_);
 }
 
-Matrix ActivationFunction::Jacobian(const Vector& x) const {
+Matrix ActivationFunction::JacobianCompose(const Matrix& U, const Matrix& X) const {
     assert(derivative_);
-    return x.unaryExpr(derivative_).asDiagonal();
+    return U.array() * X.unaryExpr(derivative_).transpose().array();
 }
 
 ActivationFunction ReLU() {

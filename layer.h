@@ -5,15 +5,16 @@
 namespace NeuralNetworkFromScratch {
 
 struct LayerCache {
-    Vector x;
-    Vector y;
+    Matrix X;
+    Matrix Y;
 };
 
 class Layer {
 public:
-    Layer(int start_dim, int end_dim, ActivationFunction activation_function);
-    Vector Propagate(const Vector& x);
-    Matrix BackPropagate(const Matrix& u, double learning_rate);
+    Layer(In in_dim, Out out_dim, const ActivationFunction& activation_function);
+    Matrix Propagate(const Matrix& X);
+    Matrix Propagate(const Matrix& X) const;
+    Matrix BackPropagate(const Matrix& U, double learning_rate);
     Index InputDim() const;
     Index OutputDim() const;
 

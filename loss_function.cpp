@@ -2,12 +2,12 @@
 
 namespace NeuralNetworkFromScratch {
 
-double LossFunction::Score(const Vector& y_true, const Vector& y_pred) const {
-    return (y_true - y_pred).squaredNorm();
+double LossFunction::Score(const Matrix& Y_true, const Matrix& Y_pred) const {
+    return (Y_pred - Y_true).squaredNorm() / static_cast<double>(Y_true.cols());
 }
 
-Vector LossFunction::Gradient(const Vector& y_true, const Vector& y_pred) const {
-    return 2 * (y_pred - y_true);
+Matrix LossFunction::Gradient(const Matrix& Y_true, const Matrix& Y_pred) const {
+    return 2 * (Y_pred - Y_true) / static_cast<double>(Y_true.cols());
 }
 
 }  // namespace NeuralNetworkFromScratch

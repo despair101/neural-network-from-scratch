@@ -8,8 +8,8 @@ class ActivationFunction {
 public:
     ActivationFunction(const std::function<double(double)>& function,
                        const std::function<double(double)>& derivative);
-    Vector Apply(const Vector& x) const;
-    Matrix Jacobian(const Vector& x) const;
+    Matrix Apply(const Matrix& X) const;
+    Matrix JacobianCompose(const Matrix& U, const Matrix& A) const;
 
 private:
     std::function<double(double)> function_;
