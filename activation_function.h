@@ -2,28 +2,27 @@
 
 #include "linalg.h"
 
-namespace NeuralNetworkFromScratch {
+namespace NNFS {
 
 class ActivationFunction {
+    using fun_signature = Vector(const Vector&);
+    using jacmul_signature = RowVector(const RowVector&, const Vector&);
+
 public:
-    ActivationFunction(const std::function<double(double)>& function,
-                       const std::function<double(double)>& derivative);
+    ActivationFunction(std::function<fun_signature> function,
+                       std::function<jacmul_signature> right_jacobian_multiplication);
     Matrix Apply(const Matrix& X) const;
-    Matrix JacobianCompose(const Matrix& U, const Matrix& A) const;
+    Matrix JacobianCompose(const Matrix& U, const Matrix& X) const;
 
 private:
-    std::function<double(double)> function_;
-    std::function<double(double)> derivative_;
+    std::function<fun_signature> function_;
+    std::function<jacmul_signature> right_jacobian_multiplication_;
 };
 
-ActivationFunction ReLU();
-
-ActivationFunction Sigmoid();
-
 ActivationFunction Id();
+ActivationFunction ReLU();
+ActivationFunction Sigmoid();
+ActivationFunction Tanh();
+ActivationFunction SoftMax();
 
-ActivationFunction SoftPlus();
-
-ActivationFunction Sin();
-
-}  // namespace NeuralNetworkFromScratch
+}  // namespace NNFS

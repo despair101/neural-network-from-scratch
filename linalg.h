@@ -2,14 +2,11 @@
 
 #include <Eigen/Core>
 
-namespace NeuralNetworkFromScratch {
+namespace NNFS {
 
 using Matrix = Eigen::MatrixXd;
 using Vector = Eigen::VectorXd;
 using RowVector = Eigen::RowVectorXd;
 using Index = Eigen::Index;
 
-enum In : Index;
-enum Out : Index;
-
-}  // namespace NeuralNetworkFromScratch
+}  // namespace NNFS

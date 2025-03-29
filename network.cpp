@@ -1,45 +1,41 @@
 #include "network.h"
-#include <algorithm>
 
-namespace NeuralNetworkFromScratch {
+namespace NNFS {
 
-Network::Network(const std::vector<Layer>& layers) : layers_(layers) {
+Network::Network(const std::vector<Layer>& layers) {
+    layers_.reserve(layers.size());
+    for (const auto& layer : layers) {
+        layers_.emplace_back(layer);
+    }
 }
 
-Network::Network(const std::vector<Index>& dimensions,
-                 const std::vector<ActivationFunction>& activation_functions) {
+Network::Network(const std::vector<Index>& dimensions, const std::vector<ActivationFunction>& activation_functions) {
     assert(dimensions.size() == activation_functions.size() + 1);
-    assert(std::all_of(dimensions.begin(), dimensions.end(), [](int x) { return x > 0; }));
+    assert(std::all_of(dimensions.begin(), dimensions.end(), [](Index x) { return x > 0; }));
     layers_.reserve(activation_functions.size());
     for (int i = 0; i + 1 < dimensions.size(); ++i) {
-        layers_.emplace_back(In{dimensions[i]}, Out{dimensions[i + 1]}, activation_functions[i]);
+        layers_.emplace_back(dimensions[i], dimensions[i + 1], activation_functions[i]);
     }
 }
 
-void Network::Train(const Matrix& X, const Matrix& Y_true, int epochs, double learning_rate,
-                    const LossFunction& loss_function) {
-    assert(X.rows() == layers_.front().InputDim());
-    assert(Y_true.rows() == layers_.back().OutputDim());
-    for (int e = 0; e < epochs; ++e) {
-        TrainEpoch(X, Y_true, learning_rate, loss_function);
+double Network::Score(const DataLoader& loader, const LossFunction& loss_function) const {
+    double loss = 0;
+    Index size = 0;
+    for (auto [X, Y] : loader) {
+        size += X.cols();
+        loss += X.cols() * loss_function.Score(Y, Propagate(X));
     }
-}
-
-void Network::TrainEpoch(const Matrix& X, const Matrix& Y_true, double learning_rate,
-                         const LossFunction& loss_function) {
-    Matrix Y_pred = Propagate(X);
-    Matrix u = loss_function.Gradient(Y_true, Y_pred).transpose();
-    BackPropagate(u, learning_rate);
+    return loss / size;
 }
 
 Matrix Network::Predict(const Matrix& X) const {
     assert(!layers_.empty());
-    return Propagate(X);
+    return Propagate(X.transpose()).transpose();
 }
 
-Matrix Network::Propagate(Matrix X) {
+Matrix Network::Propagate(Matrix&& X) {
     for (auto& layer : layers_) {
-        X = layer.Propagate(X);
+        X = layer.Propagate(std::move(X));
     }
     return X;
 }
@@ -51,11 +47,54 @@ Matrix Network::Propagate(Matrix X) const {
     return X;
 }
 
-void Network::BackPropagate(Matrix U, double learning_rate) {
+void Network::BackPropagate(Matrix U) {
     assert(!layers_.empty());
-    for (auto layer_it = layers_.rbegin(); layer_it != layers_.rend(); ++layer_it) {
-        U = layer_it->BackPropagate(U, learning_rate);
+    for (size_t i = layers_.size(); i >= 1; --i) {
+        U = layers_[i - 1].BackPropagate(U);
     }
 }
 
-}  // namespace NeuralNetworkFromScratch
+Network::ExtendedLayer::ExtendedLayer(const Layer& layer) : Layer(layer) {
+}
+
+Network::ExtendedLayer::ExtendedLayer(Index in_dim, Index out_dim, const ActivationFunction& activation_function)
+    : Layer(in_dim, out_dim, activation_function) {
+}
+
+void Network::ExtendedLayer::InitData() {
+    data_ = std::make_unique<Data>();
+}
+
+void Network::ExtendedLayer::ReleaseData() {
+    data_.reset();
+}
+
+Matrix Network::ExtendedLayer::Propagate(const Matrix& X) const {
+    return Layer::Propagate(X);
+}
+
+Matrix Network::ExtendedLayer::Propagate(Matrix&& X) {
+    assert(A_.size() != 0 && b_.size() != 0);
+    data_->X_cache_ = std::move(X);
+    data_->Y_cache_ = A_ * data_->X_cache_ + b_.replicate(1, data_->X_cache_.cols());
+    return activation_function_.Apply(data_->Y_cache_);
+}
+
+Matrix Network::ExtendedLayer::BackPropagate(const Matrix& U) {
+    assert(A_.size() != 0 && b_.size() != 0);
+    Matrix U_jac = activation_function_.JacobianCompose(U, data_->Y_cache_);
+    data_->dA_ = (data_->X_cache_ * U_jac).transpose();
+    data_->db_ = U_jac.transpose().rowwise().sum();
+    return U_jac * A_;
+}
+
+std::vector<Layer> Network::Layers() const {
+    std::vector<Layer> layers;
+    layers.reserve(layers_.size());
+    for (auto& layer : layers_) {
+        layers.push_back(layer);
+    }
+    return layers;
+}
+
+}  // namespace NNFS

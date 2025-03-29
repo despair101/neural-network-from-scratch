@@ -1,50 +1,75 @@
 #include "activation_function.h"
 
-namespace NeuralNetworkFromScratch {
+namespace NNFS {
 
-ActivationFunction::ActivationFunction(const std::function<double(double)>& function,
-                                       const std::function<double(double)>& derivative)
-    : function_(function), derivative_(derivative) {
+ActivationFunction::ActivationFunction(std::function<fun_signature> function,
+                                       std::function<jacmul_signature> right_jacobian_multiplication)
+    : function_(std::move(function)), right_jacobian_multiplication_(std::move(right_jacobian_multiplication)) {
 }
 
 Matrix ActivationFunction::Apply(const Matrix& X) const {
     assert(function_);
-    return X.unaryExpr(function_);
+    Matrix res(X.rows(), X.cols());
+    for (Index i = 0; i < X.cols(); ++i) {
+        res.col(i) = function_(X.col(i));
+    }
+    return res;
 }
 
 Matrix ActivationFunction::JacobianCompose(const Matrix& U, const Matrix& X) const {
-    assert(derivative_);
-    return U.array() * X.unaryExpr(derivative_).transpose().array();
+    assert(right_jacobian_multiplication_);
+    Matrix res(U.rows(), X.rows());
+    for (Index i = 0; i < U.rows(); ++i) {
+        res.row(i) = right_jacobian_multiplication_(U.row(i), X.col(i));
+    }
+    return res;
+}
+
+ActivationFunction Id() {
+    static ActivationFunction Id([](const Vector& x) -> Vector { return x; },
+                                 [](const RowVector& u, const Vector& x) -> RowVector { return u; });
+    return Id;
 }
 
 ActivationFunction ReLU() {
-    static ActivationFunction ReLU([](double t) { return std::max(0.0, t); },
-                                   [](double t) { return t > 0 ? 1.0 : 0.0; });
+    static ActivationFunction ReLU([](const Vector& x) -> Vector { return x.array().max(0.0); },
+                                   [](const RowVector& u, const Vector& x) -> RowVector {
+                                       auto y = x.unaryExpr([](double t) -> double { return t > 0; }).array();
+                                       return u.array() * y.transpose();
+                                   });
     return ReLU;
 }
 
 ActivationFunction Sigmoid() {
-    static ActivationFunction Sigmoid(
-        [](double t) { return 1.0 / (1.0 + std::exp(-t)); },
-        [](double t) { return 1.0 / (1.0 + std::exp(-t)) * (1 - 1.0 / (1.0 + std::exp(-t))); });
+    static ActivationFunction Sigmoid([](const Vector& x) -> Vector { return 1.0 / (1.0 + (-x.array()).exp()); },
+                                      [](const RowVector& u, const Vector& x) -> RowVector {
+                                          auto sigmoid = 1.0 / (1.0 + (-x.array()).exp());
+                                          return u.array() * (sigmoid * (1 - sigmoid)).transpose();
+                                      });
     return Sigmoid;
 }
 
-ActivationFunction Id() {
-    static ActivationFunction Id([](double t) { return t; }, [](double t) { return 1.0; });
-    return Id;
+ActivationFunction Tanh() {
+    static ActivationFunction Tanh([](const Vector& x) -> Vector { return 2 * Sigmoid().Apply(2 * x).array() - 1; },
+                                   [](const RowVector& u, const Vector& x) -> RowVector {
+                                       auto tanh = Sigmoid().Apply(2 * x).array() - 1;
+                                       return u.array() * (1 - tanh.square()).transpose();
+                                   });
+    return Tanh;
 }
 
-ActivationFunction SoftPlus() {
-    static ActivationFunction SoftPlus([](double t) { return std::log(1 + exp(t)); },
-                                       [](double t) { return 1.0 / (1.0 + std::exp(-t)); });
-    return SoftPlus;
+ActivationFunction SoftMax() {
+    static ActivationFunction SoftMax(
+        [](const Vector& x) -> Vector {
+            auto y = x.array() - x.maxCoeff();
+            return y.exp() / y.exp().sum();
+        },
+        [](const RowVector& u, const Vector& x) -> RowVector {
+            auto y = x.array() - x.maxCoeff();
+            Vector sigma = y.exp() / y.exp().sum();
+            return u * (Matrix(sigma.asDiagonal()) - sigma * sigma.transpose());
+        });
+    return SoftMax;
 }
 
-ActivationFunction Sin() {
-    static ActivationFunction Sin([](double t) { return std::sin(t); },
-                                  [](double t) { return std::cos(t); });
-    return Sin;
-}
-
-}  // namespace NeuralNetworkFromScratch
+}  // namespace NNFS
