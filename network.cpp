@@ -9,19 +9,19 @@ Network::Network(const std::vector<Layer>& layers) {
     }
 }
 
-Network::Network(const std::vector<Index>& dimensions, const std::vector<ActivationFunction>& activation_functions) {
-    assert(dimensions.size() == activation_functions.size() + 1);
-    assert(std::all_of(dimensions.begin(), dimensions.end(), [](Index x) { return x > 0; }));
+Network::Network(const std::vector<Index>& sizes, const std::vector<ActivationFunction>& activation_functions) {
+    assert(sizes.size() == activation_functions.size() + 1);
+    assert(std::all_of(sizes.begin(), sizes.end(), [](Index x) { return x > 0; }));
     layers_.reserve(activation_functions.size());
-    for (int i = 0; i + 1 < dimensions.size(); ++i) {
-        layers_.emplace_back(dimensions[i], dimensions[i + 1], activation_functions[i]);
+    for (int i = 0; i + 1 < sizes.size(); ++i) {
+        layers_.emplace_back(sizes[i], sizes[i + 1], activation_functions[i]);
     }
 }
 
-double Network::Score(const DataLoader& loader, const LossFunction& loss_function) const {
+double Network::Score(const DataLoader& data_loader, const LossFunction& loss_function) const {
     double loss = 0;
     Index size = 0;
-    for (auto [X, Y] : loader) {
+    for (auto [X, Y] : data_loader) {
         size += X.cols();
         loss += X.cols() * loss_function.Score(Y, Propagate(X));
     }
@@ -75,16 +75,16 @@ Matrix Network::ExtendedLayer::Propagate(const Matrix& X) const {
 
 Matrix Network::ExtendedLayer::Propagate(Matrix&& X) {
     assert(A_.size() != 0 && b_.size() != 0);
-    data_->X_cache_ = std::move(X);
-    data_->Y_cache_ = A_ * data_->X_cache_ + b_.replicate(1, data_->X_cache_.cols());
-    return activation_function_.Apply(data_->Y_cache_);
+    data_->cache_X_ = std::move(X);
+    data_->cache_Y_ = A_ * data_->cache_X_ + b_.replicate(1, data_->cache_X_.cols());
+    return activation_function_.Apply(data_->cache_Y_);
 }
 
 Matrix Network::ExtendedLayer::BackPropagate(const Matrix& U) {
     assert(A_.size() != 0 && b_.size() != 0);
-    Matrix U_jac = activation_function_.JacobianCompose(U, data_->Y_cache_);
-    data_->dA_ = (data_->X_cache_ * U_jac).transpose();
-    data_->db_ = U_jac.transpose().rowwise().sum();
+    Matrix U_jac = activation_function_.JacobianCompose(U, data_->cache_Y_);
+    data_->grad_A_ = (data_->cache_X_ * U_jac).transpose();
+    data_->grad_b_ = U_jac.transpose().rowwise().sum();
     return U_jac * A_;
 }
 

@@ -88,10 +88,10 @@ Matrix Normalize(Matrix X) {
     return X;
 }
 
-Index Argmax(RowVector X) {
+Index Argmax(RowVector x) {
     Index ind_max = 0;
-    for (Index i = 0; i < X.cols(); ++i) {
-        if (X(i) > X(ind_max)) {
+    for (Index i = 0; i < x.cols(); ++i) {
+        if (x(i) > x(ind_max)) {
             ind_max = i;
         }
     }

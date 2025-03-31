@@ -7,6 +7,7 @@ namespace NNFS {
 class Layer {
 public:
     Layer(Index in_dim, Index out_dim, ActivationFunction activation_function);
+    Layer(Matrix A, Vector b, ActivationFunction activation_function);
     Matrix Propagate(const Matrix& X) const;
     Index InputDim() const;
     Index OutputDim() const;

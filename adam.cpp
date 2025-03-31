@@ -11,7 +11,7 @@ ADAM::ADAM(double learning_rate, double m_coef, double v_coef, double eps)
       eps_(eps) {
 }
 
-void ADAM::Optimize(Network& network, const DataLoader& loader, const LossFunction& loss_function) {
+void ADAM::Optimize(Network& network, const DataLoader& data_loader, const LossFunction& loss_function) {
     auto& layers = network.layers_;
     if (m_.empty()) {
         m_.resize(layers.size());
@@ -21,20 +21,20 @@ void ADAM::Optimize(Network& network, const DataLoader& loader, const LossFuncti
             v_[i] = m_[i];
         }
     }
-    for (auto [X, Y] : loader) {
+    for (auto [X, Y] : data_loader) {
         network.BackPropagate(loss_function.Gradient(Y, network.Propagate(std::move(X))).transpose());
         for (size_t i = 0; i < layers.size(); ++i) {
             auto& layer = layers[i];
             auto& [mA, mb] = m_[i];
             auto& [vA, vb] = v_[i];
-            auto& dA = layer.data_->dA_;
-            auto& db = layer.data_->db_;
-            mA = NextM(mA, dA), mb = NextM(mb, db);
-            vA = NextV(vA, dA), vb = NextV(vb, db);
+            auto& grad_A = layer.data_->grad_A_;
+            auto& grad_b = layer.data_->grad_b_;
+            mA = NextM(mA, grad_A), mb = NextM(mb, grad_b);
+            vA = NextV(vA, grad_A), vb = NextV(vb, grad_b);
             layer.A_ = NextW(layer.A_, mA, vA);
             layer.b_ = NextW(layer.b_, mb, vb);
-            dA.setZero();
-            db.setZero();
+            grad_A.setZero();
+            grad_b.setZero();
         }
         m_coef_pw_ *= m_coef_;
         v_coef_pw_ *= v_coef_;

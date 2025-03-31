@@ -27,7 +27,7 @@ LossFunction MSE() {
         });
     return MSE;
 }
-//
+
 LossFunction CrossEntropy() {
     static LossFunction CrossEntropy(
         [](const Matrix& Y_true, const Matrix& Y_pred) -> double {

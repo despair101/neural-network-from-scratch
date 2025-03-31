@@ -5,6 +5,10 @@
 #include "adam.h"
 #include "sgd.h"
 
+double approx_eq(double x, double y, double eps = 1e-5) {
+    return std::abs(x - y) < eps;
+}
+
 TEST_CASE("ReadMatrixCSV") {
     using namespace NNFS;
     auto M = ReadMatrixCSV("../data/tests/matrix.csv", false);
@@ -19,6 +23,36 @@ TEST_CASE("ProbsToClass") {
     REQUIRE(ProbsToClass(v) == std::vector<Index>{2});
     Matrix u{{0.1, 0, 0.7, 0.2}, {0.29, 0.1, 0.3, 0.31}};
     REQUIRE(ProbsToClass(u) == std::vector<Index>{2, 3});
+}
+
+TEST_CASE("Normalize") {
+    using namespace NNFS;
+    Matrix X{{3, 6}, {4, 1}, {5, 11}};
+    X = Normalize(X);
+    REQUIRE(approx_eq(X(0, 0), 0));
+    REQUIRE(approx_eq(X(1, 0), 0.5));
+    REQUIRE(approx_eq(X(2, 0), 1));
+    REQUIRE(approx_eq(X(0, 1), 0.5));
+    REQUIRE(approx_eq(X(1, 1), 0));
+    REQUIRE(approx_eq(X(2, 1), 1));
+}
+
+TEST_CASE("Layer") {
+    using namespace NNFS;
+    Vector x{{3}, {14}};
+    Matrix A{{1, 2}, {3, 4}, {5, 6}};
+    Vector b{{2}, {6}, {13}};
+    Layer layer{A, b, Id()};
+    REQUIRE(layer.InputDim() == 2);
+    REQUIRE(layer.OutputDim() == 3);
+    REQUIRE(layer.Propagate(x) == A * x + b);
+}
+
+TEST_CASE("LossFunction") {
+    using namespace NNFS;
+    Vector a{{0.1}, {0.9}}, b{{0.2}, {0.8}};
+    REQUIRE(approx_eq(MSE().Score(a, b), 0.02));
+    REQUIRE(approx_eq(CrossEntropy().Score(a, b), 0.180886));
 }
 
 TEST_CASE("DataLoader") {
@@ -50,7 +84,7 @@ TEST_CASE("SGD") {
     Network network{{784, 128, 10}, {Sigmoid(), SoftMax()}};
     DataLoader loader(X, Y, 16);
     SGD opt(1e-2);
-    network.Train(loader, 50, opt, CrossEntropy());
+    network.Train(loader, opt, CrossEntropy(), 50);
     double acc = Accuracy(ProbsToClass(Y), ProbsToClass(network.Predict(X)));
     REQUIRE(acc >= 0.8);
 }
@@ -63,7 +97,7 @@ TEST_CASE("ADAM") {
     Network network{{784, 128, 10}, {Sigmoid(), SoftMax()}};
     DataLoader loader(X, Y, 16);
     ADAM opt(1e-2, 0.9, 0.99, 1e-7);
-    network.Train(loader, 10, opt, CrossEntropy());
+    network.Train(loader, opt, CrossEntropy(), 10);
     double acc = Accuracy(ProbsToClass(Y), ProbsToClass(network.Predict(X)));
     REQUIRE(acc >= 0.8);
 }
@@ -75,7 +109,7 @@ TEST_CASE("Simple approximation") {
     Network network{{2, 2}, {Id()}};
     DataLoader loader(X, Y);
     ADAM optimizer(1e-2, 0.9, 0.99, 1e-8);
-    network.Train(loader, 1000, optimizer, MSE());
+    network.Train(loader, optimizer, MSE(), 1000);
     REQUIRE(network.Score(loader, MSE()) < 0.1);
 }
 
@@ -95,7 +129,7 @@ TEST_CASE("0.95 accuracy on MNIST (Multilcass classification)") {
         {{Sigmoid(), Sigmoid()}, MSE()}};
     for (const auto& [layers, loss_function] : architectures) {
         Network network{dimensions, layers};
-        network.Train(loader, 10, opt, loss_function);
+        network.Train(loader, opt, loss_function, 10);
         double train_acc = Accuracy(ProbsToClass(Y_train), ProbsToClass(network.Predict(X_train)));
         double test_acc = Accuracy(ProbsToClass(Y_test), ProbsToClass(network.Predict(X_test)));
         REQUIRE(train_acc >= 0.97);
@@ -112,9 +146,36 @@ TEST_CASE("0.98 accuracy on RiceTypeClassification (Binary Classification)") {
     ADAM opt(1e-3, 0.9, 0.999, 1e-8);
     DataLoader loader(X_train, Y_train, 32);
     Network network{{10, 64, 2}, {ReLU(), SoftMax()}};
-    network.Train(loader, 10, opt, CrossEntropy());
+    network.Train(loader, opt, CrossEntropy(), 10);
     double train_acc = Accuracy(ProbsToClass(Y_train), ProbsToClass(network.Predict(X_train)));
     double test_acc = Accuracy(ProbsToClass(Y_test), ProbsToClass(network.Predict(X_test)));
     REQUIRE(train_acc >= 0.98);
     REQUIRE(test_acc >= 0.98);
+}
+
+TEST_CASE("Performance test on MNIST") {
+    using namespace NNFS;
+    auto X = ReadMatrixCSV("../data/mnist/X.csv", false);
+    auto Y = ReadMatrixCSV("../data/mnist/Y.csv", false);
+    X = Normalize(X);
+    {
+        Network network{{784, 128, 10}, {ReLU(), SoftMax()}};
+        DataLoader loader(X, Y);
+        SGD opt(1e-3);
+        auto start_time = std::chrono::high_resolution_clock::now();
+        network.Train(loader, opt, CrossEntropy(), 20);
+        auto end_time = std::chrono::high_resolution_clock::now();
+        std::cerr << "Training time on MNIST is " << std::chrono::duration<double>(end_time - start_time).count()
+                  << std::endl;
+    }
+    {
+        Network network{{784, 128, 10}, {ReLU(), SoftMax()}};
+        DataLoader loader(X, Y, 16);
+        SGD opt(1e-3);
+        auto start_time = std::chrono::high_resolution_clock::now();
+        network.Train(loader, opt, CrossEntropy(), 20);
+        auto end_time = std::chrono::high_resolution_clock::now();
+        std::cerr << "Training time on MNIST (mini-batch) is "
+                  << std::chrono::duration<double>(end_time - start_time).count() << std::endl;
+    }
 }

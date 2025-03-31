@@ -20,7 +20,7 @@ void ReorderCols(Matrix& A, std::vector<Index> ord);
 Matrix ReadMatrixCSV(const std::string& path, bool labels);
 DataSplit TrainTestSplit(Matrix X, Matrix Y, double train_frac = 0.66, unsigned seed = 0);
 Matrix Normalize(Matrix X);
-Index Argmax(RowVector X);
+Index Argmax(RowVector x);
 std::vector<Index> ProbsToClass(Matrix Y);
 
 template <typename T>

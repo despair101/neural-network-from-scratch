@@ -7,10 +7,13 @@ namespace NNFS {
 class SGD {
 public:
     explicit SGD(double learning_rate);
-    void Optimize(Network& network, const DataLoader& loader, const LossFunction& loss_function);
 
 private:
+    void Optimize(Network& network, const DataLoader& data_loader, const LossFunction& loss_function);
+
     double learning_rate_;
+
+    friend class Network;
 };
 
-}  // namespace NeuralNetworkFromScratch
+}  // namespace NNFS

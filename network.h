@@ -17,28 +17,28 @@ class ADAM;
 class Network {
 public:
     explicit Network(const std::vector<Layer>& layers);
-    explicit Network(const std::vector<Index>& dimensions, const std::vector<ActivationFunction>& activation_functions);
+    explicit Network(const std::vector<Index>& sizes, const std::vector<ActivationFunction>& activation_functions);
     template <typename Optimizer>
         requires(std::is_same_v<Optimizer, SGD> || std::is_same_v<Optimizer, ADAM>)
-    void Train(DataLoader& loader, size_t epochs, Optimizer& optimizer, const LossFunction& loss_function,
+    void Train(DataLoader& data_loader, Optimizer& optimizer, const LossFunction& loss_function, size_t epochs,
                bool debug = false, bool shuffle = true) {
         for (auto& layer : layers_) {
             layer.InitData();
         }
         for (size_t e = 0; e < epochs; ++e) {
             if (shuffle) {
-                loader.Shuffle();
+                data_loader.Shuffle();
             }
-            optimizer.Optimize(*this, loader, loss_function);
+            optimizer.Optimize(*this, data_loader, loss_function);
             if (debug) {
-                std::cerr << "Epoch: " << e << ", Loss: " << Score(loader, loss_function) << std::endl;
+                std::cerr << "Epoch: " << e << ", Loss: " << Score(data_loader, loss_function) << std::endl;
             }
         }
         for (auto& layer : layers_) {
             layer.ReleaseData();
         }
     }
-    double Score(const DataLoader& loader, const LossFunction& loss_function) const;
+    double Score(const DataLoader& data_loader, const LossFunction& loss_function) const;
     Matrix Predict(const Matrix& X) const;
     std::vector<Layer> Layers() const;
 
@@ -46,10 +46,10 @@ private:
     class ExtendedLayer : public Layer {
     public:
         struct Data {
-            Matrix X_cache_;
-            Matrix Y_cache_;
-            Matrix dA_;
-            Vector db_;
+            Matrix cache_X_;
+            Matrix cache_Y_;
+            Matrix grad_A_;
+            Vector grad_b_;
         };
         Matrix Propagate(Matrix&& X);
         Matrix Propagate(const Matrix& X) const;
