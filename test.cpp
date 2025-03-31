@@ -165,8 +165,8 @@ TEST_CASE("Performance test on MNIST") {
         auto start_time = std::chrono::high_resolution_clock::now();
         network.Train(loader, opt, CrossEntropy(), 20);
         auto end_time = std::chrono::high_resolution_clock::now();
-        std::cerr << "Training time on MNIST is " << std::chrono::duration<double>(end_time - start_time).count()
-                  << std::endl;
+        std::cerr << "Average training time for epoch on MNIST dataset (GD on all dataset) is "
+                  << std::chrono::duration<double>(end_time - start_time).count() / 20 << std::endl;
     }
     {
         Network network{{784, 128, 10}, {ReLU(), SoftMax()}};
@@ -175,7 +175,7 @@ TEST_CASE("Performance test on MNIST") {
         auto start_time = std::chrono::high_resolution_clock::now();
         network.Train(loader, opt, CrossEntropy(), 20);
         auto end_time = std::chrono::high_resolution_clock::now();
-        std::cerr << "Training time on MNIST (mini-batch) is "
-                  << std::chrono::duration<double>(end_time - start_time).count() << std::endl;
+        std::cerr << "Average training time for epoch on MNIST dataset (SGD with batch_size=16) is "
+                  << std::chrono::duration<double>(end_time - start_time).count() / 20 << std::endl;
     }
 }
