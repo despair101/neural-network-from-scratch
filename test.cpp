@@ -137,6 +137,21 @@ TEST_CASE("0.95 accuracy on MNIST (Multilcass classification)") {
     }
 }
 
+TEST_CASE("0.98 accuracy on MNIST (Multilcass classification)") {
+    using namespace NNFS;
+    auto X = ReadMatrixCSV("../data/mnist/X.csv", false);
+    auto Y = ReadMatrixCSV("../data/mnist/Y.csv", false);
+    auto [X_train, X_test, Y_train, Y_test] = TrainTestSplit(X, Y, 0.8);
+    X_train = Normalize(X_train), X_test = Normalize(X_test);
+    ADAM opt(1e-3, 0.9, 0.999, 1e-8);
+    DataLoader loader(X_train, Y_train, 16);
+    Network network{{728, 128, 10}, {Sigmoid(), SoftMax()}};
+    network.Train(loader, opt, CrossEntropy(), 20);
+    double train_acc = Accuracy(ProbsToClass(Y_train), ProbsToClass(network.Predict(X_train)));
+    double test_acc = Accuracy(ProbsToClass(Y_test), ProbsToClass(network.Predict(X_test)));
+    REQUIRE(train_acc >= 0.97);
+    REQUIRE(test_acc >= 0.97);
+}
 TEST_CASE("0.98 accuracy on RiceTypeClassification (Binary Classification)") {
     using namespace NNFS;
     auto X = ReadMatrixCSV("../data/rice/X.csv", true);
@@ -158,24 +173,23 @@ TEST_CASE("Performance test on MNIST") {
     auto X = ReadMatrixCSV("../data/mnist/X.csv", false);
     auto Y = ReadMatrixCSV("../data/mnist/Y.csv", false);
     X = Normalize(X);
-    {
-        Network network{{784, 128, 10}, {ReLU(), SoftMax()}};
-        DataLoader loader(X, Y);
-        SGD opt(1e-3);
-        auto start_time = std::chrono::high_resolution_clock::now();
-        network.Train(loader, opt, CrossEntropy(), 20);
-        auto end_time = std::chrono::high_resolution_clock::now();
-        std::cerr << "Average training time for epoch on MNIST dataset (GD on all dataset) is "
-                  << std::chrono::duration<double>(end_time - start_time).count() / 20 << std::endl;
+    std::vector<Index> layer_sizes = {32, 64, 128, 256};
+    std::vector<Index> batch_sizes = {16, 32, 64, 70000};
+    for (auto lsize : layer_sizes) {
+        for (auto bsize : batch_sizes) {
+            Network network{{784, lsize, 10}, {ReLU(), SoftMax()}};
+            DataLoader loader(X, Y, bsize);
+            SGD opt(1e-3);
+            auto start_time = std::chrono::high_resolution_clock::now();
+            network.Train(loader, opt, CrossEntropy(), 10);
+            auto end_time = std::chrono::high_resolution_clock::now();
+            auto train_time = std::chrono::duration<double>(end_time - start_time).count() / 10;
+            std::cerr << "===================================================" << std::endl;
+            std::cerr << "layer_size: " << lsize << std::endl;
+            std::cerr << "batch_size: " << bsize << std::endl;
+            std::cerr << "avg training time for an epoch: " << train_time << std::endl;
+        }
     }
-    {
-        Network network{{784, 128, 10}, {ReLU(), SoftMax()}};
-        DataLoader loader(X, Y, 16);
-        SGD opt(1e-3);
-        auto start_time = std::chrono::high_resolution_clock::now();
-        network.Train(loader, opt, CrossEntropy(), 20);
-        auto end_time = std::chrono::high_resolution_clock::now();
-        std::cerr << "Average training time for epoch on MNIST dataset (SGD with batch_size=16) is "
-                  << std::chrono::duration<double>(end_time - start_time).count() / 20 << std::endl;
-    }
+    std::cerr << "===================================================" << std::endl;
+    ;
 }
