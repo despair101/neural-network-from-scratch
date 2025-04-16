@@ -15,16 +15,21 @@ class SGD;
 class ADAM;
 
 class Network {
+    friend class SGD;
+    friend class ADAM;
+
 public:
     explicit Network(const std::vector<Layer>& layers);
+    explicit Network(std::vector<Layer>&& layers);
     explicit Network(const std::vector<Index>& sizes, const std::vector<ActivationFunction>& activation_functions);
     template <typename Optimizer>
         requires(std::is_same_v<Optimizer, SGD> || std::is_same_v<Optimizer, ADAM>)
     void Train(DataLoader& data_loader, Optimizer& optimizer, const LossFunction& loss_function, size_t epochs,
                bool debug = false, bool shuffle = true) {
-        for (auto& layer : layers_) {
-            layer.InitData();
-        }
+        DataKeeper keeper(layers_.size());
+
+        InitData(keeper);
+
         for (size_t e = 0; e < epochs; ++e) {
             if (shuffle) {
                 data_loader.Shuffle();
@@ -34,42 +39,27 @@ public:
                 std::cerr << "Epoch: " << e << ", Loss: " << Score(data_loader, loss_function) << std::endl;
             }
         }
-        for (auto& layer : layers_) {
-            layer.ReleaseData();
-        }
+
+        SetNullData();
     }
     double Score(const DataLoader& data_loader, const LossFunction& loss_function) const;
-    Matrix Predict(const Matrix& X) const;
-    std::vector<Layer> Layers() const;
+    Matrix Predict(Matrix X) const;
+    const std::vector<Layer>& Layers() const;
 
 private:
-    class ExtendedLayer : public Layer {
-    public:
-        struct Data {
-            Matrix cache_X_;
-            Matrix cache_Y_;
-            Matrix grad_A_;
-            Vector grad_b_;
-        };
-        Matrix Propagate(Matrix&& X);
-        Matrix Propagate(const Matrix& X) const;
-        Matrix BackPropagate(const Matrix& U);
-        void InitData();
-        void ReleaseData();
-
-        std::unique_ptr<Data> data_;
-        explicit ExtendedLayer(const Layer& layer);
-        ExtendedLayer(Index in_dim, Index out_dim, const ActivationFunction& activation_function);
+    struct DataKeeper {
+        explicit DataKeeper(size_t layers_cnt) : ptr_(std::make_unique<Layer::Data[]>(layers_cnt)) {
+        }
+        std::unique_ptr<Layer::Data[]> ptr_;
     };
 
+    void InitData(DataKeeper& data_keeper);
+    void SetNullData();
+    Matrix Apply(Matrix X) const;
     Matrix Propagate(Matrix&& X);
-    Matrix Propagate(Matrix X) const;
     void BackPropagate(Matrix Y);
 
-    std::vector<ExtendedLayer> layers_;
-
-    friend class SGD;
-    friend class ADAM;
+    std::vector<Layer> layers_;
 };
 
 }  // namespace NNFS

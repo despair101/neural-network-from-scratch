@@ -17,7 +17,11 @@ private:
     std::function<grad_signature> gradient_;
 };
 
+namespace Loss {
+
 LossFunction MSE();
 LossFunction CrossEntropy();
+
+}  // namespace Loss
 
 }  // namespace NNFS

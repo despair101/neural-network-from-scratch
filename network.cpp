@@ -2,11 +2,10 @@
 
 namespace NNFS {
 
-Network::Network(const std::vector<Layer>& layers) {
-    layers_.reserve(layers.size());
-    for (const auto& layer : layers) {
-        layers_.emplace_back(layer);
-    }
+Network::Network(const std::vector<Layer>& layers) : layers_(layers) {
+}
+
+Network::Network(std::vector<Layer>&& layers) : layers_(std::move(layers)) {
 }
 
 Network::Network(const std::vector<Index>& sizes, const std::vector<ActivationFunction>& activation_functions) {
@@ -23,14 +22,29 @@ double Network::Score(const DataLoader& data_loader, const LossFunction& loss_fu
     Index size = 0;
     for (auto [X, Y] : data_loader) {
         size += X.cols();
-        loss += X.cols() * loss_function.Score(Y, Propagate(X));
+        loss += X.cols() * loss_function.Score(Y, Apply(X));
     }
     return loss / size;
 }
 
-Matrix Network::Predict(const Matrix& X) const {
-    assert(!layers_.empty());
-    return Propagate(X.transpose()).transpose();
+Matrix Network::Predict(Matrix X) const {
+    X = X.transpose().eval();
+    for (const auto& layer : layers_) {
+        X = layer.Apply(X);
+    }
+    return X.transpose();
+}
+
+void Network::InitData(DataKeeper& data_keeper) {
+    for (size_t i = 0; i < layers_.size(); ++i) {
+        layers_[i].data_ = &data_keeper.ptr_[i];
+    }
+}
+
+void Network::SetNullData() {
+    for (auto& layer : layers_) {
+        layer.data_ = nullptr;
+    }
 }
 
 Matrix Network::Propagate(Matrix&& X) {
@@ -40,9 +54,9 @@ Matrix Network::Propagate(Matrix&& X) {
     return X;
 }
 
-Matrix Network::Propagate(Matrix X) const {
-    for (const auto& layer : layers_) {
-        X = layer.Propagate(X);
+Matrix Network::Apply(Matrix X) const {
+    for (auto& layer : layers_) {
+        X = layer.Apply(X);
     }
     return X;
 }
@@ -54,47 +68,8 @@ void Network::BackPropagate(Matrix U) {
     }
 }
 
-Network::ExtendedLayer::ExtendedLayer(const Layer& layer) : Layer(layer) {
-}
-
-Network::ExtendedLayer::ExtendedLayer(Index in_dim, Index out_dim, const ActivationFunction& activation_function)
-    : Layer(in_dim, out_dim, activation_function) {
-}
-
-void Network::ExtendedLayer::InitData() {
-    data_ = std::make_unique<Data>();
-}
-
-void Network::ExtendedLayer::ReleaseData() {
-    data_.reset();
-}
-
-Matrix Network::ExtendedLayer::Propagate(const Matrix& X) const {
-    return Layer::Propagate(X);
-}
-
-Matrix Network::ExtendedLayer::Propagate(Matrix&& X) {
-    assert(A_.size() != 0 && b_.size() != 0);
-    data_->cache_X_ = std::move(X);
-    data_->cache_Y_ = A_ * data_->cache_X_ + b_.replicate(1, data_->cache_X_.cols());
-    return activation_function_.Apply(data_->cache_Y_);
-}
-
-Matrix Network::ExtendedLayer::BackPropagate(const Matrix& U) {
-    assert(A_.size() != 0 && b_.size() != 0);
-    Matrix U_jac = activation_function_.JacobianCompose(U, data_->cache_Y_);
-    data_->grad_A_ = (data_->cache_X_ * U_jac).transpose();
-    data_->grad_b_ = U_jac.transpose().rowwise().sum();
-    return U_jac * A_;
-}
-
-std::vector<Layer> Network::Layers() const {
-    std::vector<Layer> layers;
-    layers.reserve(layers_.size());
-    for (auto& layer : layers_) {
-        layers.push_back(layer);
-    }
-    return layers;
+const std::vector<Layer>& Network::Layers() const {
+    return layers_;
 }
 
 }  // namespace NNFS

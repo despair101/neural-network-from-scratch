@@ -19,13 +19,14 @@ public:
         Batch operator*() const;
         BatchIterator& operator++();
         bool operator!=(const BatchIterator& other) const;
+        bool operator==(const BatchIterator&) const;
 
     private:
         Index ind_;
         Index size_;
         Index batch_size_;
-        const Matrix& X_;
-        const Matrix& Y_;
+        const Matrix* X_;
+        const Matrix* Y_;
     };
 
     DataLoader(const Matrix& X, const Matrix& Y, Index batch_size = 0, unsigned seed = 0, bool drop_rest = true);

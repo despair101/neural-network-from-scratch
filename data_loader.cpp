@@ -40,15 +40,15 @@ void DataLoader::Shuffle() {
 }
 
 DataLoader::BatchIterator::BatchIterator(Index ind, Index size, Index batch_size, const Matrix& X, const Matrix& Y)
-    : ind_(ind), size_(size), batch_size_(batch_size), X_(X), Y_(Y) {
+    : ind_(ind), size_(size), batch_size_(batch_size), X_(&X), Y_(&Y) {
 }
 
 DataLoader::Batch DataLoader::BatchIterator::operator*() const {
     assert(ind_ < size_);
     Index true_batch_size = std::min(batch_size_, size_ - ind_);
     return {
-        X_.block(0, ind_, X_.rows(), true_batch_size),
-        Y_.block(0, ind_, Y_.rows(), true_batch_size),
+        X_->block(0, ind_, X_->rows(), true_batch_size),
+        Y_->block(0, ind_, Y_->rows(), true_batch_size),
     };
 }
 
@@ -61,6 +61,10 @@ DataLoader::BatchIterator& DataLoader::BatchIterator::operator++() {
 
 bool DataLoader::BatchIterator::operator!=(const BatchIterator& other) const {
     return ind_ != other.ind_;
+}
+
+bool DataLoader::BatchIterator::operator==(const BatchIterator& other) const {
+    return ind_ == other.ind_;
 }
 
 }  // namespace NNFS

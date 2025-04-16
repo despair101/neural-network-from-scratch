@@ -39,17 +39,21 @@ TEST_CASE("Normalize") {
 
 TEST_CASE("Layer") {
     using namespace NNFS;
+    using namespace NNFS::Activation;
+    using namespace NNFS::Loss;
     Vector x{{3}, {14}};
     Matrix A{{1, 2}, {3, 4}, {5, 6}};
     Vector b{{2}, {6}, {13}};
     Layer layer{A, b, Id()};
     REQUIRE(layer.InputDim() == 2);
     REQUIRE(layer.OutputDim() == 3);
-    REQUIRE(layer.Propagate(x) == A * x + b);
+    REQUIRE(layer.Apply(x) == A * x + b);
 }
 
 TEST_CASE("LossFunction") {
     using namespace NNFS;
+    using namespace NNFS::Activation;
+    using namespace NNFS::Loss;
     Vector a{{0.1}, {0.9}}, b{{0.2}, {0.8}};
     REQUIRE(approx_eq(MSE().Score(a, b), 0.02));
     REQUIRE(approx_eq(CrossEntropy().Score(a, b), 0.180886));
@@ -78,19 +82,23 @@ TEST_CASE("DataLoader") {
 
 TEST_CASE("SGD") {
     using namespace NNFS;
+    using namespace NNFS::Activation;
+    using namespace NNFS::Loss;
     auto X = ReadMatrixCSV("../data/mnist/X_small.csv", false);
     auto Y = ReadMatrixCSV("../data/mnist/Y_small.csv", false);
     X = Normalize(X);
     Network network{{784, 128, 10}, {Sigmoid(), SoftMax()}};
     DataLoader loader(X, Y, 16);
     SGD opt(1e-2);
-    network.Train(loader, opt, CrossEntropy(), 50);
+    network.Train(loader, opt, CrossEntropy(), 20);
     double acc = Accuracy(ProbsToClass(Y), ProbsToClass(network.Predict(X)));
     REQUIRE(acc >= 0.8);
 }
 
 TEST_CASE("ADAM") {
     using namespace NNFS;
+    using namespace NNFS::Activation;
+    using namespace NNFS::Loss;
     auto X = ReadMatrixCSV("../data/mnist/X_small.csv", false);
     auto Y = ReadMatrixCSV("../data/mnist/Y_small.csv", false);
     X = Normalize(X);
@@ -104,6 +112,8 @@ TEST_CASE("ADAM") {
 
 TEST_CASE("Simple approximation") {
     using namespace NNFS;
+    using namespace NNFS::Activation;
+    using namespace NNFS::Loss;
     Matrix X{{{1, 3}, {2, 5}, {3, 7}, {4, 9}}};
     Matrix Y = 2 * X;
     Network network{{2, 2}, {Id()}};
@@ -115,6 +125,8 @@ TEST_CASE("Simple approximation") {
 
 TEST_CASE("0.95 accuracy on MNIST (Multilcass classification)") {
     using namespace NNFS;
+    using namespace NNFS::Activation;
+    using namespace NNFS::Loss;
     auto X = ReadMatrixCSV("../data/mnist/X.csv", false);
     auto Y = ReadMatrixCSV("../data/mnist/Y.csv", false);
     auto [X_train, X_test, Y_train, Y_test] = TrainTestSplit(X, Y, 0.8);
@@ -137,8 +149,10 @@ TEST_CASE("0.95 accuracy on MNIST (Multilcass classification)") {
     }
 }
 
-TEST_CASE("0.98 accuracy on MNIST (Multilcass classification)") {
+TEST_CASE("0.97 accuracy on MNIST (Multilcass classification)") {
     using namespace NNFS;
+    using namespace NNFS::Activation;
+    using namespace NNFS::Loss;
     auto X = ReadMatrixCSV("../data/mnist/X.csv", false);
     auto Y = ReadMatrixCSV("../data/mnist/Y.csv", false);
     auto [X_train, X_test, Y_train, Y_test] = TrainTestSplit(X, Y, 0.8);
@@ -152,8 +166,11 @@ TEST_CASE("0.98 accuracy on MNIST (Multilcass classification)") {
     REQUIRE(train_acc >= 0.97);
     REQUIRE(test_acc >= 0.97);
 }
+
 TEST_CASE("0.98 accuracy on RiceTypeClassification (Binary Classification)") {
     using namespace NNFS;
+    using namespace NNFS::Loss;
+    using namespace NNFS::Activation;
     auto X = ReadMatrixCSV("../data/rice/X.csv", true);
     auto Y = ReadMatrixCSV("../data/rice/Y.csv", true);
     auto [X_train, X_test, Y_train, Y_test] = TrainTestSplit(X, Y, 0.8);
@@ -170,6 +187,8 @@ TEST_CASE("0.98 accuracy on RiceTypeClassification (Binary Classification)") {
 
 TEST_CASE("Performance test on MNIST") {
     using namespace NNFS;
+    using namespace NNFS::Activation;
+    using namespace NNFS::Loss;
     auto X = ReadMatrixCSV("../data/mnist/X.csv", false);
     auto Y = ReadMatrixCSV("../data/mnist/Y.csv", false);
     X = Normalize(X);
@@ -191,5 +210,4 @@ TEST_CASE("Performance test on MNIST") {
         }
     }
     std::cerr << "===================================================" << std::endl;
-    ;
 }

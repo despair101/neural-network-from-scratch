@@ -17,6 +17,8 @@ Matrix LossFunction::Gradient(const Matrix& Y_true, const Matrix& Y_pred) const 
     return gradient_(Y_true, Y_pred);
 }
 
+namespace Loss {
+
 LossFunction MSE() {
     static LossFunction MSE(
         [](const Matrix& Y_true, const Matrix& Y_pred) -> double {
@@ -38,5 +40,7 @@ LossFunction CrossEntropy() {
         });
     return CrossEntropy;
 }
+
+}  // namespace Loss
 
 }  // namespace NNFS

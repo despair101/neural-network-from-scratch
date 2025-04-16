@@ -19,10 +19,14 @@ private:
     std::function<jacmul_signature> right_jacobian_multiplication_;
 };
 
+namespace Activation {
+
 ActivationFunction Id();
 ActivationFunction ReLU();
 ActivationFunction Sigmoid();
 ActivationFunction Tanh();
 ActivationFunction SoftMax();
+
+}  // namespace Activation
 
 }  // namespace NNFS

@@ -25,6 +25,8 @@ Matrix ActivationFunction::JacobianCompose(const Matrix& U, const Matrix& X) con
     return res;
 }
 
+namespace Activation {
+
 ActivationFunction Id() {
     static ActivationFunction Id([](const Vector& x) -> Vector { return x; },
                                  [](const RowVector& u, const Vector& x) -> RowVector { return u; });
@@ -71,5 +73,7 @@ ActivationFunction SoftMax() {
         });
     return SoftMax;
 }
+
+}  // namespace Activation
 
 }  // namespace NNFS
