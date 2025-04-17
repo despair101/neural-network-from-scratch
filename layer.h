@@ -8,6 +8,8 @@ class Network;
 
 class Layer {
     friend class Network;
+    friend class SGD;
+    friend class ADAM;
 
 public:
     struct Data {
@@ -24,13 +26,13 @@ public:
     Index OutputDim() const;
     const Matrix& A();
     const Vector& b();
-    const Matrix& AGrad();
-    const Vector& bGrad();
     void ShiftA(const Matrix& shift);
     void Shiftb(const Vector& shift);
-    void SetZeroGrad();
 
 private:
+    const Matrix& AGrad();
+    const Vector& bGrad();
+    void SetZeroGrad();
     Matrix Propagate(Matrix&& X);
     Matrix BackPropagate(const Matrix& U);
 
