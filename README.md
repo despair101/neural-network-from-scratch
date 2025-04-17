@@ -1,3 +1,28 @@
-# NEURAL NETWORK FROM SCRATCH
+# NEURAL NETWORK FROM SCRATCH (NNFS)
 
-The main target of this educational project is to understand how neural networks work inside.
+## Описание
+
+NNFS это библиотека на C++ для работы с полносвязными нейронными сетями. Функционал библиотеки позволяет
+создавать полносвязные нейросети с различной архитектурой и размерами слоёв. Пользователь может использовать 
+готовые слои и функции потерь или создавать собственные. Для обучения нейросетей в библиотеке реализованы 
+такие вариации градиентного спуска, как SGD и ADAM.
+
+## Установка
+
+Для того, чтобы начать пользоваться библиотекой, нужно сделать `git clone --branch baseline` из данного репозитория в ваш проект,
+после чего подтянуть зависимости, выполнив в корне neural-network-from-scratch `git submodule update --init --recursive`. После этого
+для использования библиотеки будет достаточно прописать её в `target_link_libraries` и `add_subdirectory` CMakeLists вашего проекта.
+
+
+## Тесты
+
+Чтобы вопроизвести тесты нужно скачать папку data по ссылке https://disk.yandex.ru/d/I-Nyd7EYcy8ukA и поместить её в 
+корень neural-network-from-scratch, после чего запустить исполняемый файл test, появившийся после сборки.
+Тесты проверяют базовый функционал библиотеки
+на работоспособность, а также показывают, что средствами NNFS можно построить и обучить нейросети, показывающие
+высокую точность в задачах классификации.
+
+Для примеров были взяты следующие датасеты (таргеты в них были приведены к виду векторов вероятностей):
+
+1. MNIST - 0.97 accuracy https://www.kaggle.com/datasets/oddrationale/mnist-in-csv
+2. Rice type classification - 0.98 accuracy https://www.kaggle.com/datasets/mssmartypants/rice-type-classification
