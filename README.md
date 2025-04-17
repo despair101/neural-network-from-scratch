@@ -24,5 +24,5 @@ NNFS это библиотека на C++ для работы с полносв�
 
 Для примеров были взяты следующие датасеты (таргеты в них были приведены к виду векторов вероятностей):
 
-1. MNIST - 0.95 accuracy https://www.kaggle.com/datasets/oddrationale/mnist-in-csv
+1. MNIST - 0.97 accuracy https://www.kaggle.com/datasets/oddrationale/mnist-in-csv
 2. Rice type classification - 0.98 accuracy https://www.kaggle.com/datasets/mssmartypants/rice-type-classification
